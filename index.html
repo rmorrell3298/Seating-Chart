@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classroom Seating Chart Prototype</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#182033;--muted:#667085;--line:#d7ddea;--accent:#3457d5;--good:#18794e}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#fff;border-bottom:1px solid var(--line);padding:14px 18px;position:sticky;top:0;z-index:5}
+h1{font-size:20px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:3px}
+main{max-width:1200px;margin:auto;padding:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px #1820330d}
+.tabs,.grades,.actions,.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select,input,textarea{font:inherit}button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;cursor:pointer}
+button.primary,.active{background:var(--accent);color:#fff;border-color:var(--accent)} button.danger{color:#b42318}
+label{font-size:13px;color:var(--muted)} input,select,textarea{border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.student-list{max-height:320px;overflow:auto}
+.student{display:grid;grid-template-columns:1.4fr .7fr 1fr auto;gap:7px;align-items:center;padding:7px 0;border-bottom:1px solid #eef1f6}
+.stage{min-height:460px;border:2px dashed #c9d2e3;border-radius:14px;padding:18px;background:#fafbfe;position:relative}
+.front{text-align:center;font-weight:700;background:#e9edff;padding:8px;border-radius:8px;margin-bottom:18px}
+.seatgrid{display:grid;gap:12px;justify-content:center}.seat{min-width:105px;min-height:58px;border:1px solid #bfc9dc;border-radius:10px;background:#fff;padding:8px;text-align:center;display:flex;align-items:center;justify-content:center}
+.seat.filled{border-color:#7890e8;background:#f0f3ff}.seat input{width:92px;border:0;background:transparent;text-align:center;font:inherit;padding:2px}.seat input:focus{outline:2px solid #7890e8;border-radius:5px;background:#fff}.circle{position:relative;height:380px}.circle .seat{position:absolute;width:105px}
+.clusters{display:flex;flex-wrap:wrap;gap:24px;justify-content:center}.cluster{display:grid;grid-template-columns:repeat(2,105px);gap:8px;border:2px solid #d7ddea;padding:12px;border-radius:14px;background:#fff}
+.small{font-size:12px;color:var(--muted)}.score{font-weight:700;color:var(--good)}.hidden{display:none}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}.student{grid-template-columns:1fr 110px}.student .wide{grid-column:1/-1}}
+
+.privacy{background:#eef6f1;border:1px solid #b9d8c5;border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.privacy strong{display:block;margin-bottom:4px}
+.print-title{display:none}
+@media print{
+  @page{size:landscape;margin:.35in}
+  html,body{background:#fff !important}
+  body > header{display:none !important}
+  main > *{display:none !important}
+  main > .print-area{display:block !important}
+  main{max-width:none !important;padding:0 !important;margin:0 !important}
+  .print-area{
+    border:0 !important;
+    box-shadow:none !important;
+    margin:0 !important;
+    padding:0 !important;
+    background:#fff !important;
+  }
+  .print-area .actions{display:none !important}
+  .print-title{display:block !important;text-align:center;margin:0 0 12px;font-size:20px}
+  .stage{
+    display:block !important;
+    border:0 !important;
+    background:#fff !important;
+    min-height:auto !important;
+    padding:0 !important;
+    margin:0 !important;
+  }
+  .front{margin-bottom:14px !important}
+  .seat{break-inside:avoid}
+}
+
+</style>
+</head>
+<body>
+<header><h1>Classroom Seating Chart</h1><div class="sub">Prototype • saves automatically on this device</div></header>
+<main>
+
+<section class="privacy no-print">
+  <strong>Privacy-first prototype</strong>
+  Student roster and seating data are saved only in this browser on this device using local storage. This prototype does not send roster data to a server or require an account. Exported backups are created locally on your device. If browser data is cleared, the saved information may be erased. On a shared Chromebook, sign out when finished and avoid using a shared browser profile.
+</section>
+
+<section class="card">
+  <div class="tabs" id="dayTabs"></div>
+  <hr style="border:0;border-top:1px solid #eef1f6;margin:14px 0">
+  <div class="grades" id="gradeTabs"></div>
+  <hr style="border:0;border-top:1px solid #eef1f6;margin:14px 0">
+  <div class="actions no-print">
+    <button onclick="exportBackup()">Export Backup</button>
+    <label>Import Backup <input id="backupFile" type="file" accept=".json,application/json" style="max-width:190px"></label>
+    <button class="danger" onclick="resetAllData()">Reset All Data</button>
+  </div>
+  <p class="small no-print">Backups are saved as a local JSON file. Importing replaces the app data currently stored in this browser.</p>
+</section>
+
+<div class="grid2">
+<section class="card">
+<h2 style="margin-top:0">Roster</h2>
+<div class="actions">
+<button onclick="addStudent()">+ Student</button>
+<button onclick="pasteRoster()">Paste roster (Last, First)</button>
+<button class="danger" onclick="clearClass()">Clear Class</button>
+<label>Import CSV <input id="csv" type="file" accept=".csv,text/csv" style="max-width:190px"></label>
+</div>
+<p class="small">Sex is intentionally reviewable: Male, Female, or ?. The prototype does not infer it from names yet.</p>
+<div id="students" class="student-list"></div>
+</section>
+
+<section class="card">
+<h2 style="margin-top:0">Chart setup</h2>
+<div class="row">
+<label>Layout <select id="layout" onchange="renderControls();renderChart()"><option>Grid</option><option>Circle</option><option>Cluster</option></select></label>
+<span id="layoutControls"></span>
+<label>Arrange <select id="arrange"><option>Smart</option><option>Random</option><option>Alternate Male/Female</option></select></label>
+<button class="primary" onclick="generate()">Generate</button>
+</div>
+<p id="score" class="score"></p>
+<div class="small">Smart mode currently prioritizes front/back preferences and left/right “avoid beside” rules. More accommodation types can be added next.</div>
+</section>
+</div>
+
+<section class="card print-area">
+<div id="printTitle" class="print-title"></div>
+<div class="actions" style="justify-content:space-between"><h2 style="margin:0">Seating chart</h2><button onclick="printChart()">Save chart as PDF / Print</button></div>
+<div id="stage" class="stage"></div>
+</section>
+</main>
+
+<script>
+const DAYS=["A","B","C","D"], GRADES=["Pre-K","K","1st","2nd","3rd","4th","5th"];
+let state=JSON.parse(localStorage.getItem("seatProto")||"null")||{day:"A",grade:"Pre-K",classes:{}};
+const key=()=>state.day+"|"+state.grade;
+function cls(){ if(!state.classes[key()]) state.classes[key()]={students:[],layout:"Grid",rows:4,cols:6,circle:24,group:4,seats:[],manualSeats:{}}; if(!state.classes[key()].manualSeats)state.classes[key()].manualSeats={}; return state.classes[key()] }
+function save(){localStorage.setItem("seatProto",JSON.stringify(state))}
+function init(){
+ dayTabs.innerHTML=DAYS.map(d=>`<button class="${d==state.day?'active':''}" onclick="state.day='${d}';save();init()">Day ${d}</button>`).join("");
+ gradeTabs.innerHTML=GRADES.map(g=>`<button class="${g==state.grade?'active':''}" onclick="state.grade='${g}';save();init()">${g}</button>`).join("");
+ layout.value=cls().layout||"Grid"; renderControls(); renderStudents(); renderChart(); if(window.printTitle) printTitle.textContent=`Day ${state.day} • ${state.grade} • ${cls().layout} Seating Chart`;
+}
+function renderControls(){
+ let c=cls(); c.layout=layout.value; save();
+ if(layout.value==="Grid") layoutControls.innerHTML=`<label>Rows <select id="rows" onchange="setNum('rows',this.value)">${opts(1,8,c.rows)}</select></label> <label>Columns <select id="cols" onchange="setNum('cols',this.value)">${opts(1,10,c.cols)}</select></label>`;
+ if(layout.value==="Circle") layoutControls.innerHTML=`<label>Seats <select id="circle" onchange="setNum('circle',this.value)">${opts(1,40,c.circle)}</select></label>`;
+ if(layout.value==="Cluster") layoutControls.innerHTML=`<label>Students/group <select id="group" onchange="setNum('group',this.value)">${opts(2,8,c.group)}</select></label>`;
+}
+function opts(a,b,v){let s="";for(let i=a;i<=b;i++)s+=`<option ${i==v?'selected':''}>${i}</option>`;return s}
+function setNum(k,v){cls()[k]=+v;save();renderChart()}
+function addStudent(name="New Student"){cls().students.push({id:crypto.randomUUID(),name,sex:"?",pref:"Anywhere",avoid:"",note:""});save();renderStudents()}
+function pasteRoster(){
+ let x=prompt('Paste names as "Last name, First name". They may all be on one line, for example: Smith, John Jones, Mary Brown, Alex');
+ if(!x)return;
+ parseLastFirstRoster(x).forEach(addStudent);
+}
+function parseLastFirstRoster(text){
+ text=String(text).replace(/\r?\n/g," ").replace(/;/g," ").replace(/\s+/g," ").trim();
+ if(!text)return [];
+ // Each comma closes the last name; the first name continues until the next
+ // likely "Last," token. This supports a single line such as:
+ // Smith, John Jones, Mary Brown, Alex
+ let matches=[...text.matchAll(/(?:^|\s)([^,]+?),\s*([^,]+?)(?=\s+[^,\s][^,]*,\s*|$)/g)];
+ let names=matches.map(m=>{
+   let last=m[1].trim().split(/\s+/).pop();
+   let first=m[2].trim().split(/\s+/)[0];
+   return first && last ? `${first} ${last}` : "";
+ }).filter(Boolean);
+ if(names.length)return names;
+ // Fallback: alternate comma-separated last/first values.
+ let parts=text.split(",").map(s=>s.trim()).filter(Boolean);
+ let out=[];
+ for(let i=0;i+1<parts.length;i+=2){
+   let last=parts[i].split(/\s+/).pop(), first=parts[i+1].split(/\s+/)[0];
+   if(first&&last)out.push(`${first} ${last}`);
+ }
+ return out;
+}
+csv.onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{r.result.split(/\r?\n/).slice(0).map(x=>x.split(",")[0].trim()).filter(Boolean).forEach(addStudent)};r.readAsText(f)}
+function renderStudents(){
+ students.innerHTML=cls().students.map((s,i)=>`<div class="student">
+ <input value="${esc(s.name)}" onchange="upd(${i},'name',this.value)">
+ <select onchange="upd(${i},'sex',this.value)"><option ${s.sex=="?"?"selected":""}>?</option><option ${s.sex=="Male"?"selected":""}>Male</option><option ${s.sex=="Female"?"selected":""}>Female</option></select>
+ <select class="wide" onchange="upd(${i},'pref',this.value)"><option ${s.pref=="Anywhere"?"selected":""}>Anywhere</option><option ${s.pref=="Front"?"selected":""}>Front</option><option ${s.pref=="Back"?"selected":""}>Back</option></select>
+ <button class="danger" onclick="del(${i})">×</button>
+ <input class="wide" placeholder="Avoid beside: student name" value="${esc(s.avoid||'')}" onchange="upd(${i},'avoid',this.value)">
+ <input class="wide" placeholder="Private note / accommodation" value="${esc(s.note||'')}" onchange="upd(${i},'note',this.value)">
+ </div>`).join("")||'<p class="small">No students yet. Add, paste, or import a roster.</p>';
+}
+function esc(s){return String(s).replaceAll("&","&amp;").replaceAll('"',"&quot;").replaceAll("<","&lt;")}
+function upd(i,k,v){cls().students[i][k]=v;save()}
+function del(i){cls().students.splice(i,1);save();renderStudents();renderChart()}
+function clearClass(){
+ if(!confirm(`Clear all roster and seating data for Day ${state.day} • ${state.grade}? This cannot be undone.`))return;
+ state.classes[key()]={students:[],layout:cls().layout||"Grid",rows:cls().rows||4,cols:cls().cols||6,circle:cls().circle||24,group:cls().group||4,seats:[],manualSeats:{}};
+ save(); renderStudents(); renderControls(); renderChart(); score.textContent="Class cleared";
+}
+
+function shuffle(a){a=[...a];for(let i=a.length-1;i;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function generate(){
+ let c=cls(), a=[...c.students], mode=arrange.value;
+ if(mode==="Random") a=shuffle(a);
+ else if(mode==="Alternate Male/Female"){
+   let m=shuffle(a.filter(x=>x.sex==="Male")),f=shuffle(a.filter(x=>x.sex==="Female")),u=shuffle(a.filter(x=>!["Male","Female"].includes(x.sex))), out=[];
+   let turn=f.length>=m.length?"Female":"Male";
+   while(m.length||f.length){if(turn==="Female"&&f.length)out.push(f.shift());else if(turn==="Male"&&m.length)out.push(m.shift());else out.push((f.shift()||m.shift()));turn=turn==="Female"?"Male":"Female"} a=out.concat(u);
+ } else {
+   a=shuffle(a); a.sort((x,y)=>({Front:0,Anywhere:1,Back:2}[x.pref]-{Front:0,Anywhere:1,Back:2}[y.pref]));
+ }
+ c.seats=a.map(x=>x.id); c.manualSeats={}; save(); score.textContent=`Generated • ${a.length} students seated`; renderChart();
+}
+function seated(){let c=cls(), map=Object.fromEntries(c.students.map(x=>[x.id,x]));return (c.seats||[]).map(id=>map[id]).filter(Boolean)}
+function seatName(full){
+ let p=String(full||"").trim().split(/\s+/).filter(Boolean);
+ if(!p.length)return "";
+ if(p.length===1)return p[0];
+ return `${p[0]} ${p[p.length-1][0].toUpperCase()}.`;
+}
+function seatHTML(s,idx){
+ let manual=cls().manualSeats?.[idx]||"";
+ let display=manual || (s?seatName(s.name):"");
+ return `<div class="seat ${display?'filled':''}"><input aria-label="Seat ${idx+1}" value="${esc(display)}" placeholder="Empty" onchange="setManualSeat(${idx},this.value)"></div>`;
+}
+function setManualSeat(idx,value){
+ let c=cls(), v=String(value||"").trim();
+ if(!c.manualSeats)c.manualSeats={};
+ if(v)c.manualSeats[idx]=v; else delete c.manualSeats[idx];
+ save();
+}
+function renderChart(){
+ let c=cls(), a=seated(); stage.innerHTML='<div class="front">FRONT / TEACHER</div>';
+ if(c.layout==="Grid"){let n=c.rows*c.cols; stage.innerHTML+=`<div class="seatgrid" style="grid-template-columns:repeat(${c.cols},105px)">${Array.from({length:n},(_,i)=>seatHTML(a[i],i)).join("")}</div>`}
+ if(c.layout==="Circle"){let n=c.circle,wrap=document.createElement("div");wrap.className="circle";stage.appendChild(wrap);for(let i=0;i<n;i++){let d=document.createElement("div");d.innerHTML=seatHTML(a[i],i);let seat=d.firstChild,ang=2*Math.PI*i/n,x=50+42*Math.cos(ang),y=48+40*Math.sin(ang);seat.style.left=`calc(${x}% - 52px)`;seat.style.top=`calc(${y}% - 29px)`;wrap.appendChild(seat)}}
+ if(c.layout==="Cluster"){let n=Math.max(a.length,15),groups=Math.ceil(n/c.group),wrap=document.createElement("div");wrap.className="clusters";stage.appendChild(wrap);for(let g=0;g<groups;g++){let box=document.createElement("div");box.className="cluster";for(let j=0;j<c.group;j++)box.innerHTML+=seatHTML(a[g*c.group+j],g*c.group+j);wrap.appendChild(box)}}
+}
+
+
+function exportBackup(){
+  const payload={
+    app:"Classroom Seating Chart",
+    version:6,
+    exportedAt:new Date().toISOString(),
+    data:state
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  const stamp=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download=`seating-chart-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+backupFile.onchange=e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const parsed=JSON.parse(reader.result);
+      const incoming=parsed && parsed.data ? parsed.data : parsed;
+      if(!incoming || typeof incoming!=="object" || !incoming.classes){
+        alert("That file does not appear to be a valid seating chart backup.");
+        e.target.value="";
+        return;
+      }
+      if(!confirm("Import this backup? It will replace the seating-chart data currently saved in this browser.")){
+        e.target.value="";
+        return;
+      }
+      state=incoming;
+      save();
+      init();
+      alert("Backup imported successfully.");
+    }catch(err){
+      alert("Could not read that backup file.");
+    }
+    e.target.value="";
+  };
+  reader.readAsText(f);
+}
+
+function resetAllData(){
+  if(!confirm("Reset ALL seating-chart data for every day and class? This cannot be undone unless you exported a backup first."))return;
+  if(!confirm("Final confirmation: erase all saved classes from this browser?"))return;
+  state={day:"A",grade:"Pre-K",classes:{}};
+  save();
+  init();
+  score.textContent="All app data reset";
+}
+
+function printChart(){
+  let c=cls();
+  printTitle.textContent=`Day ${state.day} • ${state.grade} • ${c.layout} Seating Chart`;
+  window.print();
+}
+
+init();
+</script>
+</body></html>
