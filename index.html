@@ -166,6 +166,61 @@ body[data-theme="dark"] select {
 body[data-theme="dark"] input::placeholder,
 body[data-theme="dark"] textarea::placeholder {color:var(--muted);opacity:1}
 @media print {body[data-theme="dark"] .seat input:focus {background:#fff!important;color:#182033!important}}
+
+/* V21 custom grid layout editing */
+.layout-editor-controls{margin:12px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.layout-editor-controls.hidden{display:none}
+.custom-grid-wrap{display:flex;flex-direction:column;gap:10px;align-items:center;overflow-x:auto;padding:8px 0}
+.layout-row,.layout-columns{display:grid;gap:10px;align-items:center;width:max-content}
+.layout-plus{min-width:30px;min-height:30px;padding:3px 6px;border:1px dashed var(--accent);color:var(--accent);background:var(--card)}
+.grid-seat-holder{position:relative;min-width:105px}
+.grid-seat-holder .seat{width:105px;min-width:105px}
+.remove-seat{position:absolute;right:-5px;top:-7px;border-radius:50%;min-width:20px;min-height:20px;padding:0 5px;background:var(--card);color:#b42318;border:1px solid #b42318;z-index:2}
+.grid-gap{width:105px;min-height:62px;border:1px dashed var(--line);background:transparent;border-radius:10px;color:var(--accent)}
+.empty-gap{border-color:transparent}
+@media print{.layout-editor-controls,.layout-columns,.layout-plus,.remove-seat{display:none!important}.grid-gap{border-color:transparent!important}}
+
+
+/* Version 22: independent physical seat coordinates */
+.free-layout-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
+.free-layout-tools.hidden{display:none}
+.free-scroll{width:100%;overflow:auto;padding:5px 0 14px}
+.free-canvas{position:relative;min-width:100%;border:1px dashed var(--line);border-radius:12px;background:var(--surface)}
+.free-seat-holder{position:absolute;width:110px;min-height:65px;touch-action:auto}
+.free-seat-holder .seat{width:110px;min-width:110px;min-height:65px}
+.free-seat-holder.layout-unlocked{padding-top:25px}
+.free-seat-holder.layout-unlocked .seat{min-height:60px}
+.free-move-handle{position:absolute;top:0;left:0;width:90px;height:24px;border-radius:6px 6px 0 0;font-size:11px;padding:2px 6px;cursor:grab;touch-action:none;user-select:none;background:var(--accent);color:#fff;border:0}
+.free-move-handle:active{cursor:grabbing}
+.free-remove{position:absolute;right:-8px;top:22px;border:1px solid #b42318;color:#b42318;background:var(--card);border-radius:50%;padding:0;width:22px;height:22px}
+@media print{
+ .free-layout-tools,.free-move-handle,.free-remove{display:none!important}
+ .free-scroll{overflow:visible!important}
+ .free-canvas{border:0!important;background:#fff!important}
+ .free-seat-holder{padding-top:0!important}
+}
+
+/* V23: editor lives with the chart, never in the roster/setup panel */
+.integrated-editor{border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0;background:var(--surface)}
+.editor-topline{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.integrated-editor .layout-editor-controls{margin:10px 0}
+.integrated-editor .free-layout-tools{margin:8px 0}
+.selected-seat-panel{margin-top:12px;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:10px}
+.selected-seat-panel .row{margin:10px 0}
+.seat.seat-selected{outline:3px solid var(--accent);outline-offset:2px}
+.roster-check{margin-top:14px}.roster-check button{font-weight:600}
+#rosterCheckResults{margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+#rosterCheckResults p{margin:5px 0}.roster-check-list{margin:5px 0 10px;padding-left:20px}
+@media print{.integrated-editor,.roster-check{display:none!important}}
+
+/* Version 24: chart-only title, global search and follow-up */
+.chart-custom-heading{text-align:center;font-size:clamp(18px,2.4vw,27px);font-weight:750;margin:6px 0 16px}
+.chart-name-editor{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}
+.chart-name-editor input{min-width:270px;max-width:100%}
+.v24-result{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.v24-result:last-child{border-bottom:0}
+.backup-reminder{margin-top:12px;border:1px solid #d6b26b;border-radius:12px;background:rgba(218,167,62,.10);padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media print{.chart-custom-heading,.chart-name-editor,#quickTools{display:none!important}.print-title{display:block!important}}
 </style>
 </head>
 <body>
@@ -177,6 +232,12 @@ body[data-theme="dark"] textarea::placeholder {color:var(--muted);opacity:1}
   Student roster and seating data are saved only in this browser on this device using local storage. This prototype does not send roster data to a server or require an account. Exported backups are created locally on your device. If browser data is cleared, the saved information may be erased. On a shared Chromebook, sign out when finished and avoid using a shared browser profile.
 </section>
 
+<section class="card no-print" id="quickTools">
+ <div class="row" style="justify-content:space-between"><strong>Quick tools</strong><div class="row"><button type="button" onclick="toggleV24Panel('searchPanel')">⌕ Student search</button><button type="button" onclick="toggleV24Panel('followPanel');renderFollowUps()">⚑ Behavior follow-up</button></div></div>
+ <div id="backupReminder" class="backup-reminder hidden" role="status"></div>
+ <div id="searchPanel" class="hidden" style="margin-top:12px"><label>Search all classes <input id="globalStudentSearch" type="search" placeholder="Student first or last name" oninput="renderGlobalSearch()" style="min-width:250px"></label><div id="searchResults"></div></div>
+ <div id="followPanel" class="hidden" style="margin-top:12px"><h3 style="margin:6px 0">Behavior follow-up · Last 30 days</h3><p class="small">Orange and red are reminders to review records, not automatic disciplinary decisions.</p><div id="followResults"></div></div>
+</section>
 <section class="card no-print" id="scheduleNav">
  <div class="tabs" style="margin-bottom:12px">
   <button id="weeklyButton" onclick="switchView('weekly')">Weekly Schedule</button>
@@ -226,7 +287,7 @@ body[data-theme="dark"] textarea::placeholder {color:var(--muted);opacity:1}
 
 <section class="card collapsible"><h2 class="collapse-head" onclick="togglePanel(this)">Chart setup <span>−</span></h2><div class="collapse-body">
 <div class="row">
-<label>Layout <select id="layout" onchange="renderControls();renderChart()"><option>Grid</option><option>Circle</option><option>Cluster</option></select></label>
+<label>Layout <select id="layout" onchange="changeLayout(this.value)"><option>Grid</option><option>Free-Position</option><option>Circle</option><option>Cluster</option></select></label>
 <span id="layoutControls"></span>
 <label>Orientation <select id="orientation" onchange="setOrientation(this.value)"><option value="A">A — Same seats, teacher below</option><option value="B">B — Flip rows, teacher below</option></select></label>
 <label>Arrange <select id="arrange"><option>Smart</option><option>Random</option><option>Alternate Male/Female</option></select></label>
@@ -234,6 +295,12 @@ body[data-theme="dark"] textarea::placeholder {color:var(--muted);opacity:1}
 </div>
 <p id="score" class="score"></p>
 <div class="small">Orientation is saved separately for each class. A keeps student positions; B flips rows vertically. Both show the teacher at the bottom.</div>
+<div id="layoutEditorControls" class="layout-editor-controls hidden no-print"><button type="button" id="layoutEditToggle" onclick="toggleLayoutEditor()">✚ Edit layout</button><span class="small" id="layoutEditHelp">Grid: insert rows/columns. Free-Position: move seats without reflow.</span></div>
+<div id="freeLayoutTools" class="free-layout-tools hidden no-print">
+<button type="button" onclick="addFreeSeat()">+ Add individual seat</button>
+<label><input id="freeSnap" type="checkbox" onchange="setFreeSnap(this.checked)" checked> Snap to grid</label>
+<span class="small">Drag the handle at the top of a seat to reposition the entire seat. The student stays assigned to it.</span>
+</div>
 <div class="small">Smart mode currently prioritizes front/back preferences and left/right “avoid beside” rules. More accommodation types can be added next.</div></div>
 </section>
 </div>
@@ -256,8 +323,20 @@ body[data-theme="dark"] textarea::placeholder {color:var(--muted);opacity:1}
 </div>
 <section class="card print-area">
 <div id="printTitle" class="print-title"></div>
+<div class="chart-custom-heading" id="chartCustomHeading"></div>
+<div class="no-print chart-name-editor"><label>Chart title <input id="customClassName" placeholder="e.g. Mrs. Johnson's Music Class" onchange="setClassTitle(this.value)" maxlength="120"></label><span class="small">Shown only above this seating chart and on its PDF.</span></div>
 <div class="actions" style="justify-content:space-between"><div><h2 style="margin:0">Seating chart</h2><div class="small">Edit: drag or type. Records: click a seat. Ctrl+click opens records from any mode.</div></div><div class="row"><button id="focusExit" class="hidden" onclick="toggleFocus()">Exit Focus</button><button onclick="printChart()">Save chart as PDF / Print</button></div></div>
+<div id="integratedEditor" class="integrated-editor no-print hidden">
+ <div class="editor-topline"><strong>Edit seating chart</strong><span class="small">Choose a seat, or adjust the physical layout below.</span></div>
+ <div id="integratedLayoutHost"></div>
+ <div id="selectedSeatPanel" class="selected-seat-panel hidden">
+  <strong id="selectedSeatTitle">Selected seat</strong>
+  <div class="row"><button type="button" onclick="editSelectedSeatName()">✎ Edit name</button><button type="button" onclick="removeSelectedEmptySeat()">Remove empty seat</button><button type="button" onclick="clearSeatSelection()">Deselect</button></div>
+  <p class="small">To swap students, drag one name onto another. In Free-Position, use the move handle to reposition the entire seat.</p>
+ </div>
+</div>
 <div id="stage" class="stage"></div>
+<div class="roster-check no-print"><button type="button" onclick="toggleRosterCheck()">✓ Roster Check</button><div id="rosterCheckResults" class="hidden" aria-live="polite"></div></div>
 </section>
 </main>
 
@@ -349,24 +428,229 @@ function renderWeekly(){
   return `<div class="schedule-slot"><div><strong>${i+1}. ${label}</strong>${(grade==='K'||grade==='1st')?'<div class="small">27-minute section</div>':''}</div><select aria-label="Assign ${label}" onchange="assignPeriod(${i},this.value)">${options}</select><button ${!chosen?'disabled':''} onclick="openPeriod(${i})">Open chart</button></div>`;
  }).join('');
 }
+let selectedSeatIndex=null;
+function mountIntegratedEditor(){
+ const host=document.getElementById('integratedLayoutHost');
+ for(const id of ['layoutEditorControls','freeLayoutTools']){
+  const node=document.getElementById(id);
+  if(node && node.parentElement!==host)host.appendChild(node);
+ }
+}
+function syncIntegratedEditor(){
+ const editor=document.getElementById('integratedEditor');
+ if(!editor)return;
+ editor.classList.toggle('hidden',appMode!=='edit');
+ const panel=document.getElementById('selectedSeatPanel');
+ if(selectedSeatIndex===null||appMode!=='edit')panel.classList.add('hidden');
+ else{
+  panel.classList.remove('hidden');
+  document.getElementById('selectedSeatTitle').textContent='Selected seat '+(selectedSeatIndex+1)+': '+(seatLabelAt(selectedSeatIndex)||'Empty');
+ }
+}
+function seatLabelAt(idx){
+ const c=cls();const manual=String(c.manualSeats?.[idx]||'').trim();
+ if(manual)return manual;
+ const st=(c.students||[]).find(x=>x.id===(c.seats||[])[idx]);
+ return st?seatName(st.name):'';
+}
+function selectSeatForEdit(idx){
+ if(appMode!=='edit')return;
+ selectedSeatIndex=idx;
+ document.querySelectorAll('.seat').forEach(el=>el.classList.toggle('seat-selected',Number(el.dataset.seatIndex)===idx));
+ syncIntegratedEditor();
+}
+function clearSeatSelection(){selectedSeatIndex=null;document.querySelectorAll('.seat-selected').forEach(el=>el.classList.remove('seat-selected'));syncIntegratedEditor()}
+function editSelectedSeatName(){
+ if(selectedSeatIndex===null)return;
+ const old=seatLabelAt(selectedSeatIndex);
+ const value=prompt('Enter the student name for this seat. To clear it, leave blank.',old);
+ if(value===null)return;
+ setManualSeat(selectedSeatIndex,value);
+ renderChart();syncIntegratedEditor();
+}
+function removeSelectedEmptySeat(){
+ if(selectedSeatIndex===null)return;
+ const c=cls(),idx=selectedSeatIndex;
+ if(seatLabelAt(idx)){alert('This seat is occupied. Clear or move the student before removing the seat.');return}
+ if(c.layout==='Free-Position'){
+  ensureFreeSeats();
+  if(!c.freeSeats.some(x=>x.id===idx)){alert('Seat not found.');return}
+  c.freeSeats=c.freeSeats.filter(x=>x.id!==idx);save();clearSeatSelection();renderChart();
+ }else if(c.layout==='Grid'&&c.gridCells){
+  const r=c.gridCells.findIndex(row=>row.includes(idx));
+  if(r<0)return;
+  const col=c.gridCells[r].indexOf(idx);
+  c.gridCells[r][col]=null;save();clearSeatSelection();renderChart();
+ }else alert('To remove individual seats, use Free-Position or activate the custom Grid layout editor.');
+}
+function toggleRosterCheck(){
+ const el=document.getElementById('rosterCheckResults');
+ const opening=el.classList.contains('hidden');
+ el.classList.toggle('hidden',!opening);
+ if(opening)renderRosterCheck();
+}
+function renderRosterCheck(){
+ const c=cls(),out=document.getElementById('rosterCheckResults');
+ if(!out||out.classList.contains('hidden'))return;
+ const roster=Array.isArray(c.students)?c.students:[];
+ const byId=new Map(roster.map(s=>[s.id,s]));
+ const occupied=activeSeatIndices(c).filter(i=>seatLabelAt(i));
+ const assignments=new Map(),unknown=[],nameCounts=new Map();
+ for(const i of occupied){
+  const sid=c.seats?.[i],rosterStudent=byId.get(sid),manual=String(c.manualSeats?.[i]||'').trim();
+  const matching=manual?roster.find(s=>normalizeName(s.name)===normalizeName(manual)||normalizeName(seatName(s.name))===normalizeName(manual)):rosterStudent;
+  const student=matching||(!manual?rosterStudent:null);
+  if(student)assignments.set(student.id,(assignments.get(student.id)||0)+1);
+  else unknown.push(manual||`Seat ${i+1}`);
+  const label=normalizeName(student?.name||manual);
+  if(label)nameCounts.set(label,(nameCounts.get(label)||0)+1);
+ }
+ const duplicate=roster.filter(s=>(assignments.get(s.id)||0)>1).map(s=>`${s.name} (${assignments.get(s.id)} seats)`);
+ const unassigned=roster.filter(s=>!assignments.has(s.id)).map(s=>s.name);
+ const duplicateRoster=roster.filter((s,i)=>roster.findIndex(x=>normalizeName(x.name)===normalizeName(s.name))<i).map(s=>s.name);
+ const list=(arr)=>arr.length?`<ul class="roster-check-list">${arr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="small">None found.</p>';
+ out.innerHTML=`<strong>${roster.length} roster students · ${occupied.length} occupied seats · ${activeSeatIndices(c).length} physical seats</strong>`+
+ `<h4>Roster students in multiple seats</h4>${list(duplicate)}<h4>Unassigned roster students</h4>${list(unassigned)}`+
+ `<h4>Seat names not matched to roster</h4>${list(unknown)}<h4>Repeated names in roster</h4>${list(duplicateRoster)}`+
+ '<p class="small">Review only: this check never changes or deletes records. Names entered directly into seats are flagged if they cannot be matched reliably.</p>';
+}
+function normalizeName(name){return String(name||'').trim().toLocaleLowerCase().replace(/\s+/g,' ')}
+function activeSeatIndices(c){
+ if(c.layout==='Free-Position'&&Array.isArray(c.freeSeats))return c.freeSeats.map(x=>x.id);
+ if(c.layout==='Grid'&&Array.isArray(c.gridCells))return c.gridCells.flat().filter(x=>Number.isInteger(x));
+ if(c.layout==='Grid')return Array.from({length:(c.rows||4)*(c.cols||6)},(_,i)=>i);
+ if(c.layout==='Circle')return Array.from({length:c.circle||24},(_,i)=>i);
+ if(c.layout==='Cluster')return Array.from({length:Math.max((c.students||[]).length,15)},(_,i)=>i);
+ return [];
+}
 function init(){
- renderWeekly();
+ mountIntegratedEditor();selectedSeatIndex=null;
+ layoutEditorActive=false;renderWeekly();
  dayTabs.innerHTML=DAYS.map(d=>`<button class="${d==state.day?'active':''}" onclick="state.day='${d}';save();init()">Day ${d}</button>`).join("");
  gradeTabs.innerHTML=GRADES.map(g=>`<button class="${g==state.grade?'active':''}" onclick="state.grade='${g}';save();init()">${g}</button>`).join("");
- layout.value=cls().layout||"Grid"; orientation.value=cls().orientation||"A"; renderControls(); renderStudents(); renderChart(); showPicker(); if(window.assessmentName)assessmentName.value=cls().activeAssessment||"";renderHistory();loadThresholds(); if(window.printTitle) printTitle.textContent=`Day ${state.day} • ${state.grade} • ${cls().layout} Seating Chart`;
+ layout.value=cls().layout||"Grid"; orientation.value=cls().orientation||"A"; renderControls(); renderStudents(); renderChart(); showPicker(); if(window.assessmentName)assessmentName.value=cls().activeAssessment||"";renderHistory();loadThresholds();renderClassTitle();renderBackupReminder(); if(window.printTitle) printTitle.textContent=cls().customName?.trim()||`Day ${state.day} • ${state.grade} Seating Chart`;
+}
+function changeLayout(next){
+ const c=cls();
+ if(next==='Free-Position')ensureFreeSeats();
+ c.layout=next;
+ layoutEditorActive=false;
+ save();renderControls();renderChart();
+}
+function ensureFreeSeats(){
+ const c=cls();
+ if(Array.isArray(c.freeSeats))return;
+ const coords=[];
+ if(c.gridCells){
+   c.gridCells.forEach((row,r)=>row.forEach((id,col)=>{if(Number.isInteger(id))coords.push({id,x:28+col*122,y:22+r*90})}));
+ }else{
+   const count=Math.max((c.rows||4)*(c.cols||6),(c.seats||[]).length,Object.keys(c.manualSeats||{}).reduce((n,k)=>Math.max(n,Number(k)+1),0));
+   const cols=Math.max(1,c.cols||6);
+   for(let i=0;i<count;i++)coords.push({id:i,x:28+(i%cols)*122,y:22+Math.floor(i/cols)*90});
+ }
+ c.freeSeats=coords;
+ c.freeSnap=true;
+}
+function freeSeatBounds(c){
+ const seats=c.freeSeats||[];
+ return {w:Math.max(860,...seats.map(x=>x.x+140)),h:Math.max(560,...seats.map(x=>x.y+115))};
+}
+function setFreeSnap(v){cls().freeSnap=!!v;save()}
+function addFreeSeat(){
+ if(appMode!=='edit'||cls().layout!=='Free-Position')return;
+ const c=cls();ensureFreeSeats();
+ const used=c.freeSeats.map(x=>x.id);
+ const id=Math.max(-1,...used,...Object.keys(c.manualSeats||{}).map(Number),(c.seats||[]).length-1)+1;
+ const n=c.freeSeats.length;
+ c.freeSeats.push({id,x:30+(n%5)*122,y:30+Math.floor(n/5)*90});
+ save();renderChart();
+}
+function removeFreeSeat(id){
+ const c=cls();
+ if(c.seats?.[id]||c.manualSeats?.[id]){alert('Move or clear the student before removing this seat.');return}
+ if(!confirm('Remove this empty seat?'))return;
+ c.freeSeats=c.freeSeats.filter(x=>x.id!==id);
+ save();renderChart();
+}
+let freeDragging=null;
+function startFreeDrag(e,id){
+ if(appMode!=='edit'||!layoutEditorActive||cls().layout!=='Free-Position')return;
+ e.preventDefault();e.stopPropagation();
+ const canvas=document.getElementById('freeCanvas');
+ const seat=cls().freeSeats.find(x=>x.id===id);
+ if(!canvas||!seat)return;
+ freeDragging={id,pointer:e.pointerId,startX:e.clientX,startY:e.clientY,x:seat.x,y:seat.y,canvas};
+ e.currentTarget.setPointerCapture(e.pointerId);
+}
+function moveFreeDrag(e){
+ if(!freeDragging||freeDragging.pointer!==e.pointerId)return;
+ const d=freeDragging,c=cls(),seat=c.freeSeats.find(x=>x.id===d.id);
+ if(!seat)return;
+ const bounds=freeSeatBounds(c);
+ let x=Math.max(0,Math.min(bounds.w-110,d.x+e.clientX-d.startX));
+ let y=Math.max(0,Math.min(bounds.h-65,d.y+e.clientY-d.startY));
+ if(c.freeSnap){x=Math.round(x/10)*10;y=Math.round(y/10)*10}
+ seat.x=x;seat.y=y;
+ const holder=document.getElementById('freeSeat-'+d.id);
+ if(holder){holder.style.left=x+'px';holder.style.top=y+'px'}
+}
+function endFreeDrag(e){
+ if(!freeDragging||freeDragging.pointer!==e.pointerId)return;
+ freeDragging=null;save();renderChart();
+}
+function renderFreePosition(c,a){
+ ensureFreeSeats();
+ const bounds=freeSeatBounds(c);
+ const scroll=document.createElement('div');scroll.className='free-scroll';
+ const canvas=document.createElement('div');canvas.id='freeCanvas';canvas.className='free-canvas';
+ canvas.style.width=bounds.w+'px';canvas.style.height=bounds.h+'px';
+ c.freeSeats.forEach(seat=>{
+   const holder=document.createElement('div');holder.className='free-seat-holder';holder.id='freeSeat-'+seat.id;
+   holder.style.left=seat.x+'px';holder.style.top=seat.y+'px';
+   holder.innerHTML=seatHTML(a[seat.id],seat.id);
+   if(layoutEditorActive&&appMode==='edit'){
+     holder.classList.add('layout-unlocked');
+     const handle=document.createElement('button');handle.type='button';handle.className='free-move-handle no-print';
+     handle.textContent='⠿ Move';handle.title='Drag to move this seat, without moving the student';
+     handle.addEventListener('pointerdown',e=>startFreeDrag(e,seat.id));
+     handle.addEventListener('pointermove',moveFreeDrag);
+     handle.addEventListener('pointerup',endFreeDrag);
+     handle.addEventListener('pointercancel',endFreeDrag);
+     holder.prepend(handle);
+     if(!c.seats?.[seat.id]&&!c.manualSeats?.[seat.id]){
+       const remove=document.createElement('button');remove.type='button';remove.className='free-remove no-print';remove.textContent='×';remove.title='Remove empty seat';
+       remove.onclick=()=>removeFreeSeat(seat.id);holder.appendChild(remove);
+     }
+   }
+   canvas.appendChild(holder);
+ });
+ scroll.appendChild(canvas);stage.appendChild(scroll);
 }
 function renderControls(){
  let c=cls(); c.layout=layout.value; save();
- if(layout.value==="Grid") layoutControls.innerHTML=`<label>Rows <select id="rows" onchange="setNum('rows',this.value)">${opts(1,8,c.rows)}</select></label> <label>Columns <select id="cols" onchange="setNum('cols',this.value)">${opts(1,10,c.cols)}</select></label>`;
+ if(layout.value==="Grid") layoutControls.innerHTML=c.gridCells?`<span class="small">Custom grid: ${c.rows} rows × ${c.cols} columns (use Edit Layout)</span>`:`<label>Rows <select id="rows" onchange="setNum('rows',this.value)">${opts(1,8,c.rows)}</select></label> <label>Columns <select id="cols" onchange="setNum('cols',this.value)">${opts(1,10,c.cols)}</select></label>`;
+ document.getElementById('layoutEditorControls')?.classList.toggle('hidden',appMode!=='edit'||!['Grid','Free-Position'].includes(c.layout));
+ if(layout.value==="Free-Position") layoutControls.innerHTML='<span class="small">Seats stay where you place them. Use Edit layout to move seats.</span>';
  if(layout.value==="Circle") layoutControls.innerHTML=`<label>Seats <select id="circle" onchange="setNum('circle',this.value)">${opts(1,40,c.circle)}</select></label>`;
  if(layout.value==="Cluster") layoutControls.innerHTML=`<label>Students/group <select id="group" onchange="setNum('group',this.value)">${opts(2,8,c.group)}</select></label>`;
+ const tools=document.getElementById('freeLayoutTools');
+ if(tools)tools.classList.toggle('hidden',!(appMode==='edit'&&c.layout==='Free-Position'&&layoutEditorActive));
+ if(window.freeSnap)freeSnap.checked=c.freeSnap!==false;
+ const help=document.getElementById('layoutEditHelp');
+ if(help)help.textContent=c.layout==='Free-Position'?'Move seats by dragging their handles. Add/remove empty seats without reflow.':'Insert rows/columns with +. Remove empty seats to make gaps; click a gap to add a seat.';
 }
 function opts(a,b,v){let s="";for(let i=a;i<=b;i++)s+=`<option ${i==v?'selected':''}>${i}</option>`;return s}
 function setOrientation(value){
  cls().orientation=value==="B"?"B":"A";
  save();renderChart();
 }
-function setNum(k,v){cls()[k]=+v;save();renderChart()}
+function setNum(k,v){
+ let c=cls();
+ if(c.layout==='Grid' && c.gridCells && (k==='rows'||k==='cols')){
+   alert('This class uses a custom grid. Use Edit Layout to insert rows or columns without moving students.');renderControls();return;
+ }
+ c[k]=+v;save();renderChart();
+}
 function addStudent(name="New Student"){cls().students.push({id:crypto.randomUUID(),name,sex:"?",pref:"Anywhere",avoid:"",note:""});save();renderStudents();showPicker()}
 function pasteRoster(){
  let x=prompt('Paste names as "Last name, First name". They may all be on one line, for example: Smith, John Jones, Mary Brown, Alex');
@@ -442,7 +726,7 @@ function del(i){cls().students.splice(i,1);save();renderStudents();renderChart()
 function clearClass(){
  if(!confirm(`Clear all roster and seating data for Day ${state.day} • ${state.grade}? This cannot be undone.`))return;
  state.classes[key()]={students:[],layout:cls().layout||"Grid",rows:cls().rows||4,cols:cls().cols||6,circle:cls().circle||24,group:cls().group||4,seats:[],manualSeats:{},orientation:cls().orientation||"A"};
- save(); renderStudents(); renderControls(); renderChart(); score.textContent="Class cleared";
+ save(); layoutEditorActive=false;renderStudents(); renderControls(); renderChart(); score.textContent="Class cleared";
 }
 
 function shuffle(a){a=[...a];for(let i=a.length-1;i;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -456,9 +740,18 @@ function generate(){
  } else {
    a=shuffle(a); a.sort((x,y)=>({Front:0,Anywhere:1,Back:2}[x.pref]-{Front:0,Anywhere:1,Back:2}[y.pref]));
  }
- c.seats=a.map(x=>x.id); c.manualSeats={}; save(); score.textContent=`Generated • ${a.length} students seated`; renderChart();showPicker();
+ if(c.layout==='Free-Position'){
+   ensureFreeSeats();
+   if(a.length>c.freeSeats.length){alert(`This layout has ${c.freeSeats.length} seats for ${a.length} students. Add seats in Edit Layout first.`);return}
+   c.seats=[];c.freeSeats.forEach((seat,i)=>{c.seats[seat.id]=a[i]?.id||null});
+ }else if(c.layout==='Grid' && c.gridCells){
+   const active=c.gridCells.flat().filter(x=>x!==null);
+   if(a.length>active.length){alert(`This layout has ${active.length} seats for ${a.length} students. Add more seats in Edit Layout first.`);return}
+   c.seats=[];active.forEach((idx,i)=>{c.seats[idx]=a[i]?.id||null});
+ }else c.seats=a.map(x=>x.id);
+ c.manualSeats={}; save(); score.textContent=`Generated • ${a.length} students seated`; renderChart();showPicker();
 }
-function seated(){let c=cls(), map=Object.fromEntries(c.students.map(x=>[x.id,x]));return (c.seats||[]).map(id=>map[id]).filter(Boolean)}
+function seated(){let c=cls(), map=Object.fromEntries(c.students.map(x=>[x.id,x]));return (c.seats||[]).map(id=>map[id]||null)}
 function seatName(full){
  let p=String(full||"").trim().split(/\s+/).filter(Boolean);
  if(!p.length)return "";
@@ -468,9 +761,9 @@ function seatName(full){
 
 let appMode='edit', dialogStudentId=null;
 function togglePanel(h){const card=h.closest('.collapsible');card.classList.toggle('collapsed');h.querySelector('span').textContent=card.classList.contains('collapsed')?'+':'−'}
-function setMode(m){appMode=m;closeStudentDialog();for(const v of ['Edit','Behavior','Assessment','Records'])document.getElementById('mode'+v).classList.toggle('active',v.toLowerCase()===m);
+function setMode(m){appMode=m;if(m!=='edit')layoutEditorActive=false;closeStudentDialog();for(const v of ['Edit','Behavior','Assessment','Records'])document.getElementById('mode'+v).classList.toggle('active',v.toLowerCase()===m);
  modeHelp.textContent=m==='edit'?'Edit: drag to swap, or type in a seat.':m==='behavior'?'Behavior: click a student for positive or negative.':m==='assessment'?'Assessment: enter a name for the assignment, then click students.':'Records: click a student to view behavior, assessments, and contact history.';
- document.getElementById('editSettings').classList.toggle('hidden',m!=='edit');document.getElementById('settingsDrawer').classList.add('hidden');assessmentControls.classList.toggle('hidden',m!=='assessment');assessmentName.value=cls().activeAssessment||'';renderChart();renderHistory()}
+ document.getElementById('editSettings').classList.toggle('hidden',m!=='edit');document.getElementById('layoutEditorControls').classList.toggle('hidden',m!=='edit'||!['Grid','Free-Position'].includes(cls().layout));document.getElementById('settingsDrawer').classList.add('hidden');assessmentControls.classList.toggle('hidden',m!=='assessment');assessmentName.value=cls().activeAssessment||'';renderControls();renderChart();renderHistory()}
 function setAssessmentName(v){cls().activeAssessment=v.trim();save()}
 function toggleHistory(){historyPanel.classList.toggle('hidden');renderHistory()}
 function recordPeople(){let c=cls(),map=new Map();for(const st of c.students||[])map.set('roster:'+st.id,{id:'roster:'+st.id,name:st.name});
@@ -507,14 +800,14 @@ function seatHTML(s,idx){
  let display=manual || (s?seatName(s.name):"");
  let draggable=display && appMode==='edit' ? 'true' : 'false';
  let st=studentForSeat(idx),level=st?behaviorLevel(st.id).level:"";
- return `<div class="seat ${display?'filled':''} ${appMode!=='edit'?'mode-click':''} ${level?'behavior-'+level:''}" onclick="openStudentSeat(${idx},event)" draggable="${draggable}" data-seat-index="${idx}"
+ return `<div class="seat ${display?'filled':''} ${appMode!=='edit'?'mode-click':''} ${level?'behavior-'+level:''}" onclick="if(appMode==='edit')selectSeatForEdit(${idx});else openStudentSeat(${idx},event)" draggable="${draggable}" data-seat-index="${idx}"
    ondragstart="dragSeatStart(event,${idx})"
    ondragend="dragSeatEnd(event)"
    ondragover="dragSeatOver(event)"
    ondragleave="dragSeatLeave(event)"
    ondrop="dropSeat(event,${idx})">
    <input aria-label="Seat ${idx+1}" value="${esc(display)}" placeholder="Empty" ${appMode!=='edit'?'readonly':''}
-     onmousedown="event.stopPropagation()" onclick="if(appMode==='edit')event.stopPropagation()"
+     onmousedown="event.stopPropagation()" onclick="if(appMode==='edit'){event.stopPropagation();selectSeatForEdit(${idx})}"
      onchange="setManualSeat(${idx},this.value)">
  </div>`;
 }
@@ -585,39 +878,108 @@ function swapSeats(a,b){
  score.textContent=`Swapped seats ${a+1} and ${b+1}`;
 }
 
+let layoutEditorActive=false;
+function toggleLayoutEditor(){
+ if(appMode!=='edit'||!['Grid','Free-Position'].includes(cls().layout))return;
+ layoutEditorActive=!layoutEditorActive;
+ if(layoutEditorActive){if(cls().layout==='Grid')ensureGridCells();else ensureFreeSeats();}
+ renderChart();renderControls();
+}
+function ensureGridCells(){
+ const c=cls();
+ if(!c.gridCells){
+   c.gridCells=Array.from({length:c.rows},(_,r)=>Array.from({length:c.cols},(_,col)=>r*c.cols+col));
+   c.nextSeatIndex=c.rows*c.cols;
+   save();
+ }
+ if(!Number.isInteger(c.nextSeatIndex))c.nextSeatIndex=Math.max(c.rows*c.cols,...c.gridCells.flat().filter(Number.isInteger).map(n=>n+1));
+}
+function layoutChange(action,row,col){
+ if(appMode!=='edit'||!layoutEditorActive||cls().layout!=='Grid')return;
+ const c=cls();ensureGridCells();
+ if(action==='row'){
+   const cells=Array.from({length:c.cols},()=>c.nextSeatIndex++);
+   c.gridCells.splice(row,0,cells);c.rows++;
+ }else if(action==='col'){
+   c.gridCells.forEach(r=>r.splice(col,0,c.nextSeatIndex++));c.cols++;
+ }else if(action==='remove'){
+   const idx=c.gridCells[row]?.[col];
+   if(idx==null)return;
+   if(c.seats?.[idx]||c.manualSeats?.[idx]){alert('Move or clear this student before removing the seat.');return}
+   c.gridCells[row][col]=null;
+ }else if(action==='add'){
+   if(c.gridCells[row]?.[col]!==null)return;
+   c.gridCells[row][col]=c.nextSeatIndex++;
+ }
+ save();renderChart();renderControls();
+}
+function renderCustomGrid(c,a){
+ let rows=c.gridCells.map((row,r)=>({row,r}));
+ if(c.orientation==='B')rows.reverse();
+ const wrap=document.createElement('div');wrap.className='custom-grid-wrap';
+ if(layoutEditorActive){
+   const head=document.createElement('div');head.className='layout-columns';
+   head.style.gridTemplateColumns=`32px repeat(${c.cols},105px) 32px`;
+   head.innerHTML='<span></span>'+Array.from({length:c.cols},(_,i)=>`<button type="button" class="layout-plus" onclick="layoutChange('col',0,${i})" title="Insert column before column ${i+1}">+</button>`).join('')+`<button type="button" class="layout-plus" onclick="layoutChange('col',0,${c.cols})" title="Add column at right">+</button>`;
+   wrap.appendChild(head);
+ }
+ rows.forEach(({row,r},displayRow)=>{
+   const line=document.createElement('div');line.className='layout-row';
+   line.style.gridTemplateColumns=layoutEditorActive?`32px repeat(${c.cols},105px) 32px`:`repeat(${c.cols},105px)`;
+   if(layoutEditorActive)line.innerHTML=`<button type="button" class="layout-plus" onclick="layoutChange('row',${r},0)" title="Insert row above this row">+</button>`;
+   row.forEach((idx,col)=>{
+     if(idx===null){
+       line.insertAdjacentHTML('beforeend',layoutEditorActive?`<button type="button" class="grid-gap" onclick="layoutChange('add',${r},${col})" title="Add individual seat here">+ Seat</button>`:'<div class="grid-gap empty-gap" aria-label="Empty gap"></div>');
+     }else{
+       const holder=document.createElement('div');holder.className='grid-seat-holder';
+       holder.innerHTML=seatHTML(a[idx],idx);
+       if(layoutEditorActive && !c.seats?.[idx] && !c.manualSeats?.[idx])holder.innerHTML+=`<button type="button" class="remove-seat" onclick="layoutChange('remove',${r},${col})" title="Remove empty seat to create a gap">×</button>`;
+       line.appendChild(holder);
+     }
+   });
+   if(layoutEditorActive)line.insertAdjacentHTML('beforeend',`<button type="button" class="layout-plus" onclick="layoutChange('row',${r+1},0)" title="Insert row below">+</button>`);
+   wrap.appendChild(line);
+ });
+ if(layoutEditorActive){
+   const bottom=document.createElement('button');bottom.type='button';bottom.className='layout-plus';bottom.textContent='+ Add row at bottom';bottom.onclick=()=>layoutChange('row',c.rows,0);wrap.appendChild(bottom);
+ }
+ stage.appendChild(wrap);
+}
 function renderChart(){
  let c=cls(), a=seated();
- // A keeps positions; B reverses row/group display. Neither mutates saved seat assignments.
  stage.innerHTML='';
- if(c.layout==="Grid"){
-   let n=c.rows*c.cols;
-   let indices=Array.from({length:n},(_,i)=>i);
-   if(c.orientation==="B")indices=indices.map(i=>(c.rows-1-Math.floor(i/c.cols))*c.cols+i%c.cols);
-   stage.innerHTML+=`<div class="seatgrid" style="grid-template-columns:repeat(${c.cols},105px)">${indices.map(i=>seatHTML(a[i],i)).join("")}</div>`;
- }
- if(c.layout==="Circle"){
-   let n=c.circle,wrap=document.createElement("div");wrap.className="circle";stage.appendChild(wrap);
-   for(let i=0;i<n;i++){
-     let d=document.createElement("div");d.innerHTML=seatHTML(a[i],i);
-     let seat=d.firstChild,ang=2*Math.PI*i/n;
-     let x=50+42*Math.cos(ang),y=48+(c.orientation==="B"?-40:40)*Math.sin(ang);
-     seat.style.left=`calc(${x}% - 52px)`;
-     seat.style.top=`calc(${y}% - 29px)`;
-     wrap.appendChild(seat);
+ if(c.layout==='Grid'){
+   if(c.gridCells)renderCustomGrid(c,a);
+   else{
+     let n=c.rows*c.cols;
+     let indices=Array.from({length:n},(_,i)=>i);
+     if(c.orientation==='B')indices=indices.map(i=>(c.rows-1-Math.floor(i/c.cols))*c.cols+i%c.cols);
+     stage.innerHTML+=`<div class="seatgrid" style="grid-template-columns:repeat(${c.cols},105px)">${indices.map(i=>seatHTML(a[i],i)).join('')}</div>`;
    }
  }
- if(c.layout==="Cluster"){
-   let n=Math.max(a.length,15),groups=Math.ceil(n/c.group),wrap=document.createElement("div");
-   wrap.className="clusters";stage.appendChild(wrap);
+ if(c.layout==='Free-Position')renderFreePosition(c,a);
+ if(c.layout==='Circle'){
+   let n=c.circle,wrap=document.createElement('div');wrap.className='circle';stage.appendChild(wrap);
+   for(let i=0;i<n;i++){
+     let d=document.createElement('div');d.innerHTML=seatHTML(a[i],i);
+     let seat=d.firstChild,ang=2*Math.PI*i/n;
+     let x=50+42*Math.cos(ang),y=48+(c.orientation==='B'?-40:40)*Math.sin(ang);
+     seat.style.left=`calc(${x}% - 52px)`;seat.style.top=`calc(${y}% - 29px)`;wrap.appendChild(seat);
+   }
+ }
+ if(c.layout==='Cluster'){
+   let n=Math.max(a.length,15),groups=Math.ceil(n/c.group),wrap=document.createElement('div');wrap.className='clusters';stage.appendChild(wrap);
    for(let gi=0;gi<groups;gi++){
-     let g=c.orientation==="B"?groups-1-gi:gi;
-     let box=document.createElement("div");box.className="cluster";
+     let g=c.orientation==='B'?groups-1-gi:gi;
+     let box=document.createElement('div');box.className='cluster';
      for(let j=0;j<c.group;j++)box.innerHTML+=seatHTML(a[g*c.group+j],g*c.group+j);
      wrap.appendChild(box);
    }
  }
- let front=document.createElement("div");front.className="front";
- front.textContent="FRONT / TEACHER";stage.appendChild(front);
+ let front=document.createElement('div');front.className='front';front.textContent='FRONT / TEACHER';stage.appendChild(front);
+ const toggle=document.getElementById('layoutEditToggle');
+ if(toggle)toggle.textContent=layoutEditorActive?'✓ Finish editing layout':'✚ Edit layout';
+ syncIntegratedEditor();renderRosterCheck();
 }
 
 function exportBackup(){
@@ -636,6 +998,8 @@ function exportBackup(){
   document.body.appendChild(a);
   a.click();
   a.remove();
+  localStorage.setItem("seatProtoLastBackup",new Date().toISOString());
+  renderBackupReminder();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
@@ -679,31 +1043,35 @@ function resetAllData(){
 
 
 function pickerCandidates(){
- const c=cls(), roster=Array.isArray(c.students)?c.students:[];
- const byId=new Map(roster.map(s=>[s.id,s]));
- const found=new Map();
- const ids=Array.isArray(c.seats)?c.seats:[];
- const overrides=c.manualSeats||{};
- // Include names entered directly on seats, even when the roster is empty.
- // A manually changed label replaces that seat's roster name for picking.
- for(let i=0;i<Math.max(ids.length,...Object.keys(overrides).map(x=>Number(x)+1),0);i++){
-   const manual=String(overrides[i]||'').trim();
-   const student=byId.get(ids[i]);
-   if(manual){
-     const label=manual;
-     const matching=roster.find(s=>seatName(s.name).toLowerCase()===label.toLowerCase()||s.name.toLowerCase()===label.toLowerCase());
-     const id=matching?'roster:'+matching.id:'manual:'+label.toLowerCase();
-     found.set(id,{id,name:matching?matching.name:label});
-   }else if(student){
-     found.set('roster:'+student.id,{id:'roster:'+student.id,name:student.name});
-   }
+ const c=cls(),roster=Array.isArray(c.students)?c.students:[];
+ const people=new Map();
+ const normalizedRoster=new Map();
+ for(const st of roster){
+  if(!st||!st.id||!String(st.name||'').trim())continue;
+  people.set('roster:'+st.id,{id:'roster:'+st.id,name:st.name});
+  for(const label of [st.name,seatName(st.name)]){
+   const key=normalizeName(label);
+   if(!normalizedRoster.has(key))normalizedRoster.set(key,st);
+  }
  }
- // Also include roster students not currently assigned to a seat.
- for(const student of roster){
-   const id='roster:'+student.id;
-   if(!found.has(id))found.set(id,{id,name:student.name});
+ // Manual-only names count once, but only on actual occupied seats.
+ // Roster-backed seats are never counted again as additional people.
+ const manualNames=new Map();
+ for(const idx of activeSeatIndices(c)){
+  const label=String(c.manualSeats?.[idx]||'').trim();
+  if(!label)continue;
+  const rosterMatch=normalizedRoster.get(normalizeName(label));
+  if(rosterMatch)continue;
+  const baseId=(c.seats||[])[idx];
+  const backingStudent=roster.find(st=>st.id===baseId);
+  // A manual override on an existing roster seat is a display edit,
+  // not an extra student. Roster Check will flag name mismatches.
+  if(backingStudent)continue;
+  const normalized=normalizeName(label);
+  if(!manualNames.has(normalized))manualNames.set(normalized,{id:'manual:'+normalized,name:label});
  }
- return [...found.values()];
+ for(const [id,person] of manualNames)people.set(person.id,person);
+ return [...people.values()];
 }
 function pickerState(){
  let c=cls();
@@ -741,9 +1109,82 @@ function pickStudent(mode){
    : `Fair Pick: ${people.length} students available. No cycle started.`;
 }
 function resetPicker(){cls().picker={remaining:[],started:false};save();showPicker()}
+
+function setClassTitle(value){cls().customName=String(value||'').trim();save();renderClassTitle()}
+function renderClassTitle(){
+ const c=cls(),name=String(c.customName||'').trim();
+ const input=document.getElementById('customClassName');if(input)input.value=name;
+ const h=document.getElementById('chartCustomHeading');if(h){h.textContent=name;h.style.display=name?'block':'none'}
+ const print=document.getElementById('printTitle');if(print)print.textContent=name||`Day ${state.day} • ${state.grade} Seating Chart`;
+}
+function toggleV24Panel(id){const p=document.getElementById(id);p.classList.toggle('hidden');if(id==='searchPanel'&&!p.classList.contains('hidden')){renderGlobalSearch();document.getElementById('globalStudentSearch').focus()}}
+function v24ClassPeople(c){
+ const result=new Map();
+ for(const st of c.students||[]){if(!st?.name?.trim())continue;result.set('roster:'+st.id,{id:'roster:'+st.id,name:st.name})}
+ // Names manually entered in seats are included only if they do not match a roster student.
+ const normalizedRoster=new Set((c.students||[]).map(st=>normalizeName(st.name)));
+ for(const value of Object.values(c.manualSeats||{})){
+  const name=String(value||'').trim(),normalized=normalizeName(name);
+  if(!normalized||normalizedRoster.has(normalized))continue;
+  result.set('manual:'+normalized,{id:'manual:'+normalized,name});
+ }
+ return [...result.values()];
+}
+function allClassPeople(){
+ const result=[];
+ for(const [classKey,c] of Object.entries(state.classes||{})){
+  if(!c||typeof c!=='object')continue;
+  for(const person of v24ClassPeople(c))result.push({...person,classKey,className:c.customName||classKey});
+ }
+ return result;
+}
+function renderGlobalSearch(){
+ const q=normalizeName(document.getElementById('globalStudentSearch').value);
+ const box=document.getElementById('searchResults');
+ if(!q){box.innerHTML='<p class="small">Enter part of a student name to search across classes.</p>';return}
+ const hits=allClassPeople().filter(p=>normalizeName(p.name).includes(q)).slice(0,100);
+ box.innerHTML=hits.length?hits.map(p=>`<div class="v24-result"><span><strong>${esc(p.name)}</strong> <span class="small">${esc(p.className)} (${esc(p.classKey)})</span></span><button type="button" data-key="${esc(p.classKey)}" data-id="${esc(p.id)}" onclick="openGlobalRecord(this.dataset.key,this.dataset.id)">View records</button></div>`).join(''):'<p class="small">No matches found.</p>';
+}
+function openGlobalRecord(classKey,personId){
+ const [day,grade]=String(classKey).split('|');if(!DAYS.includes(day)||!GRADES.includes(grade))return;
+ state.day=day;state.grade=grade;save();init();setMode('records');
+ const person=v24ClassPeople(cls()).find(p=>p.id===personId);if(!person)return;
+ dialogStudentId=person.id;dialogTitle.textContent=person.name;renderStudentRecords();studentDialog.classList.remove('hidden');
+}
+function renderFollowUps(){
+ const box=document.getElementById('followResults');if(!box)return;
+ const t=behaviorThresholds(),cutoff=Date.now()-30*86400000,rows=[];
+ for(const [classKey,c] of Object.entries(state.classes||{})){
+  if(!c||typeof c!=='object')continue;
+  for(const person of v24ClassPeople(c)){
+   const entries=(c.behaviorRecords||[]).filter(r=>r.studentId===person.id&&r.type==='negative'&&Date.parse(r.date)>=cutoff);
+   if(entries.length<t.orange)continue;
+   const level=entries.length>=t.red?'red':'orange';
+   const contacts=(c.parentContacts||[]).filter(r=>r.studentId===person.id&&Date.parse(r.date)>=cutoff);
+   const latest=contacts.map(r=>r.date).sort().at(-1);
+   rows.push({...person,classKey,className:c.customName||classKey,count:entries.length,level,contact:latest});
+  }
+ }
+ rows.sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+ box.innerHTML=rows.length?rows.map(p=>`<div class="v24-result"><span><span class="level-tag level-${p.level}">${p.level.toUpperCase()}</span> <strong>${esc(p.name)}</strong><br><span class="small">${esc(p.className)} (${esc(p.classKey)}) · ${p.count} negatives · ${p.contact?'Parent contact logged '+esc(new Date(p.contact).toLocaleDateString()):'No contact logged in last 30 days'}</span></span><button type="button" data-key="${esc(p.classKey)}" data-id="${esc(p.id)}" onclick="openGlobalRecord(this.dataset.key,this.dataset.id)">View records</button></div>`).join(''):'<p class="small">No students currently meet the orange or red thresholds.</p>';
+}
+function renderBackupReminder(){
+ const box=document.getElementById('backupReminder');if(!box)return;
+ const last=localStorage.getItem('seatProtoLastBackup');
+ const days=last?Math.floor((Date.now()-Date.parse(last))/86400000):null;
+ const snooze=localStorage.getItem('seatProtoBackupDismissUntil');
+ if(snooze&&Date.now()<Date.parse(snooze)){box.classList.add('hidden');return}
+ if(days!==null&&days<7){box.classList.add('hidden');return}
+ box.classList.remove('hidden');
+ const message=days===null?'No backup export has been recorded in this browser.':`It has been ${days} days since your last backup export.`;
+ box.innerHTML=`<div><strong>Backup reminder</strong><p class="small" style="margin:3px 0">${message} Save a secure backup of your classroom records.</p></div><div class="row"><button type="button" onclick="exportBackup()">Export Backup</button><button type="button" onclick="dismissBackupReminder()">Remind me later</button></div>`;
+}
+function dismissBackupReminder(){localStorage.setItem('seatProtoBackupDismissUntil',new Date(Date.now()+86400000).toISOString());renderBackupReminder()}
+
 function printChart(){
+ if(layoutEditorActive){layoutEditorActive=false;renderChart();}
   let c=cls();
-  printTitle.textContent=`Day ${state.day} • ${state.grade} • ${c.layout} Seating Chart`;
+  printTitle.textContent=c.customName?.trim()||`Day ${state.day} • ${state.grade} Seating Chart`;
   window.print();
 }
 
