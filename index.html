@@ -132,6 +132,40 @@ body[data-theme="dark"] .seat.behavior-yellow{border-left-color:#e4b955}
 @media print {
   .seat.behavior-green,.seat.behavior-yellow,.seat.behavior-orange,.seat.behavior-red {border-left:1px solid #cfd7e2 !important;}
 }
+
+/* Version 19: two-action random student picker */
+.picker-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.picker-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:105px;border-radius:14px;padding:15px 12px;text-align:center;transition:filter .15s,transform .15s}
+.picker-action:hover{filter:brightness(.96);transform:translateY(-1px)}
+.picker-action strong{font-size:17px}.picker-action span:last-child{font-size:12px}.picker-symbol{font-size:23px;font-weight:700}
+.picker-random{background:#eaf0fc;color:#284f97;border:1px solid #b9cbee}
+.picker-fair{background:#eaf8ef;color:#176747;border:1px solid #b1ddc2}
+.picker-result{background:var(--card,#fff);border:1px solid var(--line,#d7ddea);border-radius:14px;padding:20px 12px;text-align:center;margin:12px 0}
+.picker-result-caption{font-size:11px;letter-spacing:.12em;color:var(--muted,#667085);font-weight:700}
+#pickedName{font-size:clamp(25px,4vw,40px);font-weight:750;line-height:1.25;margin:10px 0;overflow-wrap:anywhere}
+.picker-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.picker-footer p{margin:0}
+@media(max-width:460px){.picker-actions{gap:8px}.picker-action{padding:12px 5px}.picker-action strong{font-size:15px}}
+@media print{.picker-actions,.picker-result,.picker-footer{display:none!important}}
+[data-theme="dark"] .picker-random,body.dark .picker-random{background:#243958;color:#dbe8ff;border-color:#47648e}
+[data-theme="dark"] .picker-fair,body.dark .picker-fair{background:#1d4338;color:#d5f9e5;border-color:#42775f}
+
+/* Version 20: readable text fields when editing in dark mode. */
+body[data-theme="dark"] .seat input:focus,
+body[data-theme="dark"] .seat input:focus-visible {
+  background: var(--card) !important;
+  color: var(--ink) !important;
+  caret-color: var(--ink);
+}
+body[data-theme="dark"] input,
+body[data-theme="dark"] textarea,
+body[data-theme="dark"] select {
+  color: var(--ink);
+  caret-color: var(--ink);
+}
+body[data-theme="dark"] input::placeholder,
+body[data-theme="dark"] textarea::placeholder {color:var(--muted);opacity:1}
+@media print {body[data-theme="dark"] .seat input:focus {background:#fff!important;color:#182033!important}}
 </style>
 </head>
 <body>
@@ -167,16 +201,15 @@ body[data-theme="dark"] .seat.behavior-yellow{border-left-color:#e4b955}
   <p class="small no-print">Backups are saved as a local JSON file. Importing replaces the app data currently stored in this browser.</p>
 </section>
 <section class="card no-print collapsible"><h2 class="collapse-head" onclick="togglePanel(this)">Random student picker <span>−</span></h2><div class="collapse-body">
-<div class="row">
-<label>Selection mode <select id="pickMode" onchange="showPicker()">
-<option value="all">All students (repeats allowed)</option>
-<option value="once">Everyone once before repeating</option>
-</select></label>
-<button class="primary" onclick="pickStudent()">Pick a student</button>
-<button onclick="resetPicker()">Reset selection cycle</button>
+<div class="picker-actions">
+ <button class="picker-action picker-random" type="button" onclick="pickStudent('all')"><span class="picker-symbol" aria-hidden="true">⤨</span><strong>Random Pick</strong><span>Repeats allowed</span></button>
+ <button class="picker-action picker-fair" type="button" onclick="pickStudent('once')"><span class="picker-symbol" aria-hidden="true">✓</span><strong>Fair Pick</strong><span>Everyone once</span></button>
 </div>
-<p id="pickedName" style="font-size:26px;font-weight:700;margin:12px 0">Ready to pick!</p>
-<p id="pickerProgress" class="small"></p></div>
+<div class="picker-result" aria-live="polite" aria-atomic="true">
+ <div class="picker-result-caption">SELECTED STUDENT</div>
+ <div id="pickedName">Ready to pick!</div>
+</div>
+<div class="picker-footer"><p id="pickerProgress" class="small"></p><button type="button" onclick="resetPicker()">Reset Fair Pick cycle</button></div></div>
 </section>
 
 <div class="grid2">
@@ -682,16 +715,16 @@ function showPicker(){
  const people=pickerCandidates(),p=pickerState(),valid=new Set(people.map(s=>s.id));
  p.remaining=p.remaining.filter(id=>valid.has(id));
  const used=p.started?people.length-p.remaining.length:0;
- pickerProgress.textContent=pickMode.value==='once'
-   ? (p.started?`${used} of ${people.length} selected this cycle; ${p.remaining.length} remaining.`:`${people.length} students available. No cycle started.`)
-   : `${people.length} students available. Repeats allowed.`;
+ pickerProgress.textContent=p.started
+   ? (p.remaining.length?`Fair Pick: ${used} of ${people.length} selected; ${p.remaining.length} remaining.`:`Fair Pick: everyone selected. Next fair pick starts a new cycle.`)
+   : `Fair Pick: ${people.length} students available. No cycle started.`;
  pickedName.textContent='Ready to pick!';
 }
-function pickStudent(){
+function pickStudent(mode){
  const people=pickerCandidates(),p=pickerState();
  if(!people.length){pickedName.textContent='Add students to the roster or type names into seats first.';pickerProgress.textContent='0 students available.';return}
  let student;
- if(pickMode.value==='all')student=people[Math.floor(Math.random()*people.length)];
+ if(mode==='all')student=people[Math.floor(Math.random()*people.length)];
  else{
    const valid=new Set(people.map(s=>s.id));
    p.remaining=p.remaining.filter(id=>valid.has(id));
@@ -702,9 +735,10 @@ function pickStudent(){
  }
  pickedName.textContent=student.name;
  save();
- pickerProgress.textContent=pickMode.value==='once'
-  ? (p.remaining.length?`${people.length-p.remaining.length} of ${people.length} selected; ${p.remaining.length} remaining.`:'Everyone has been selected! The next pick starts a new cycle.')
-  : `${people.length} students available. Repeats allowed.`;
+ const used=p.started?people.length-p.remaining.length:0;
+ pickerProgress.textContent=p.started
+   ? (p.remaining.length?`Fair Pick: ${used} of ${people.length} selected; ${p.remaining.length} remaining.`:'Fair Pick: everyone selected. Next fair pick starts a new cycle.')
+   : `Fair Pick: ${people.length} students available. No cycle started.`;
 }
 function resetPicker(){cls().picker={remaining:[],started:false};save();showPicker()}
 function printChart(){
