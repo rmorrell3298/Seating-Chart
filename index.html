@@ -133,6 +133,17 @@ body[data-theme="dark"] .seat.behavior-yellow{border-left-color:#e4b955}
   .seat.behavior-green,.seat.behavior-yellow,.seat.behavior-orange,.seat.behavior-red {border-left:1px solid #cfd7e2 !important;}
 }
 
+/* Version 25: independent named fair-pick activities */
+.activity-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.activity-tab{border:1px solid var(--line);border-radius:9px;padding:9px 13px;background:var(--card);color:var(--ink);font-weight:600}
+.activity-tab.selected{background:#3457d5;color:#fff;border-color:#3457d5}
+.activity-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.activity-progress{height:9px;background:var(--line);border-radius:10px;overflow:hidden;margin:8px 0}
+.activity-progress-fill{height:100%;background:#26916a;transition:width .2s}
+.participation-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:12px 0}
+.participation-list label{display:flex;gap:8px;align-items:center;border:1px solid var(--line);padding:9px;border-radius:9px;color:var(--ink);background:var(--card)}
+.picker-activity-note{font-size:12px;color:var(--muted);margin:6px 0}
+@media print{.activity-tabs,.activity-tools,.participation-list,.activity-progress,.picker-activity-note{display:none!important}}
 /* Version 19: two-action random student picker */
 .picker-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
 .picker-action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:105px;border-radius:14px;padding:15px 12px;text-align:center;transition:filter .15s,transform .15s}
@@ -262,6 +273,16 @@ body[data-theme="dark"] textarea::placeholder {color:var(--muted);opacity:1}
   <p class="small no-print">Backups are saved as a local JSON file. Importing replaces the app data currently stored in this browser.</p>
 </section>
 <section class="card no-print collapsible"><h2 class="collapse-head" onclick="togglePanel(this)">Random student picker <span>−</span></h2><div class="collapse-body">
+<div id="activityTabs" class="activity-tabs"></div>
+<div class="activity-tools">
+ <button type="button" onclick="newPickerActivity()">+ New activity</button>
+ <button type="button" onclick="renamePickerActivity()">Rename</button>
+ <button type="button" onclick="archivePickerActivity()">Archive</button>
+ <button type="button" onclick="toggleArchivedPickerActivities()">Archived activities</button>
+</div>
+<div id="archivedPickerActivities" class="hidden"></div>
+<div id="activeActivitySummary" class="picker-activity-note"></div>
+<div class="activity-progress"><div id="activityProgressFill" class="activity-progress-fill" style="width:0%"></div></div>
 <div class="picker-actions">
  <button class="picker-action picker-random" type="button" onclick="pickStudent('all')"><span class="picker-symbol" aria-hidden="true">⤨</span><strong>Random Pick</strong><span>Repeats allowed</span></button>
  <button class="picker-action picker-fair" type="button" onclick="pickStudent('once')"><span class="picker-symbol" aria-hidden="true">✓</span><strong>Fair Pick</strong><span>Everyone once</span></button>
@@ -270,7 +291,9 @@ body[data-theme="dark"] textarea::placeholder {color:var(--muted);opacity:1}
  <div class="picker-result-caption">SELECTED STUDENT</div>
  <div id="pickedName">Ready to pick!</div>
 </div>
-<div class="picker-footer"><p id="pickerProgress" class="small"></p><button type="button" onclick="resetPicker()">Reset Fair Pick cycle</button></div></div>
+<div class="picker-footer"><p id="pickerProgress" class="small"></p><button type="button" onclick="resetPicker()">Reset this activity</button></div>
+<details id="participationDetails"><summary>Participation checklist — mark turns manually</summary><div id="participationList" class="participation-list"></div></details>
+</div>
 </section>
 
 <div class="grid2">
@@ -1073,42 +1096,121 @@ function pickerCandidates(){
  for(const [id,person] of manualNames)people.set(person.id,person);
  return [...people.values()];
 }
-function pickerState(){
- let c=cls();
- if(!c.picker)c.picker={remaining:[],started:false};
- if(!Array.isArray(c.picker.remaining))c.picker.remaining=[];
- return c.picker;
+function pickerActivities(){
+ const c=cls();
+ if(!c.pickerActivities || !Array.isArray(c.pickerActivities.items)){
+   const legacy=c.picker||{remaining:[],started:false};
+   // Preserve existing fair-pick progress in the default activity.
+   const people=pickerCandidates();
+   const valid=new Set(people.map(p=>p.id));
+   const remaining=Array.isArray(legacy.remaining)?legacy.remaining.filter(id=>valid.has(id)):[];
+   const done=legacy.started?people.map(p=>p.id).filter(id=>!remaining.includes(id)):[];
+   c.pickerActivities={active:'default',items:[{id:'default',name:'General',remaining,started:!!legacy.started,done,archived:false}]};
+ }
+ const data=c.pickerActivities;
+ if(!data.items.length)data.items.push({id:'default',name:'General',remaining:[],started:false,done:[],archived:false});
+ for(const a of data.items){
+  if(!Array.isArray(a.remaining))a.remaining=[];
+  if(!Array.isArray(a.done))a.done=[];
+  if(typeof a.started!=='boolean')a.started=false;
+ }
+ if(!data.items.some(a=>a.id===data.active&&!a.archived))data.active=(data.items.find(a=>!a.archived)||data.items[0]).id;
+ return data;
 }
-function showPicker(){
- const people=pickerCandidates(),p=pickerState(),valid=new Set(people.map(s=>s.id));
- p.remaining=p.remaining.filter(id=>valid.has(id));
- const used=p.started?people.length-p.remaining.length:0;
- pickerProgress.textContent=p.started
-   ? (p.remaining.length?`Fair Pick: ${used} of ${people.length} selected; ${p.remaining.length} remaining.`:`Fair Pick: everyone selected. Next fair pick starts a new cycle.`)
-   : `Fair Pick: ${people.length} students available. No cycle started.`;
- pickedName.textContent='Ready to pick!';
+function currentPickerActivity(){const data=pickerActivities();return data.items.find(a=>a.id===data.active)}
+function pickerState(){return currentPickerActivity()}
+function syncPickerActivity(a,people){
+ const ids=people.map(p=>p.id),valid=new Set(ids);
+ a.done=[...new Set(a.done.filter(id=>valid.has(id)))];
+ a.remaining=[...new Set(a.remaining.filter(id=>valid.has(id)&&!a.done.includes(id)))];
+ if(a.started){for(const id of ids)if(!a.done.includes(id)&&!a.remaining.includes(id))a.remaining.push(id)}
+}
+function renderPickerActivities(){
+ const data=pickerActivities();
+ activityTabs.innerHTML='';
+ for(const a of data.items.filter(a=>!a.archived)){
+  const b=document.createElement('button');b.type='button';b.className='activity-tab'+(a.id===data.active?' selected':'');
+  b.textContent=a.name;b.onclick=()=>{data.active=a.id;save();showPicker()};activityTabs.appendChild(b);
+ }
+ const archived=document.getElementById('archivedPickerActivities');
+ if(!archived.classList.contains('hidden')){
+  archived.replaceChildren();
+  for(const a of data.items.filter(a=>a.archived)){
+   const b=document.createElement('button');b.textContent='Restore: '+a.name;
+   b.onclick=()=>{a.archived=false;data.active=a.id;save();showPicker()};archived.appendChild(b);
+  }
+  if(!archived.children.length)archived.textContent='No archived activities.';
+ }
+}
+function newPickerActivity(){
+ const name=prompt('Name this Fair Pick activity (for example, Rhythm or Instruments):');
+ if(!name||!name.trim())return;
+ const data=pickerActivities();
+ const id='activity-'+(typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random());
+ data.items.push({id,name:name.trim().slice(0,80),remaining:[],done:[],started:false,archived:false});
+ data.active=id;save();showPicker();
+}
+function renamePickerActivity(){
+ const a=currentPickerActivity();const name=prompt('Rename activity:',a.name);
+ if(!name||!name.trim())return;a.name=name.trim().slice(0,80);save();showPicker();
+}
+function archivePickerActivity(){
+ const data=pickerActivities(),a=currentPickerActivity();
+ if(data.items.filter(x=>!x.archived).length<=1){alert('Keep at least one active activity.');return}
+ if(!confirm('Archive "'+a.name+'"? Its participation history will be kept.'))return;
+ a.archived=true;data.active=data.items.find(x=>!x.archived).id;save();showPicker();
+}
+function toggleArchivedPickerActivities(){
+ document.getElementById('archivedPickerActivities').classList.toggle('hidden');renderPickerActivities();
+}
+function setParticipation(id,checked){
+ const a=currentPickerActivity();const people=pickerCandidates();syncPickerActivity(a,people);
+ if(checked){
+  if(!a.done.includes(id))a.done.push(id);
+  a.remaining=a.remaining.filter(x=>x!==id);
+  a.started=true;
+ }else{
+  a.done=a.done.filter(x=>x!==id);
+  if(a.started&&!a.remaining.includes(id))a.remaining.push(id);
+ }
+ save();showPicker(false);
+}
+function showPicker(resetName=true){
+ const people=pickerCandidates(),a=currentPickerActivity();syncPickerActivity(a,people);
+ renderPickerActivities();
+ const used=a.done.length,total=people.length;
+ document.getElementById('activeActivitySummary').textContent=`${a.name}: ${used} of ${total} students have had a turn`;
+ document.getElementById('activityProgressFill').style.width=(total?100*used/total:0)+'%';
+ pickerProgress.textContent=a.started
+  ? (a.remaining.length?`${a.remaining.length} students still need a turn.`:'Everyone has had a turn! The next Fair Pick starts a new cycle.')
+  : `${total} students available. No cycle started.`;
+ if(resetName)pickedName.textContent='Ready to pick!';
+ const list=document.getElementById('participationList');list.replaceChildren();
+ for(const person of people){
+  const label=document.createElement('label');const input=document.createElement('input');input.type='checkbox';input.checked=a.done.includes(person.id);
+  input.onchange=()=>setParticipation(person.id,input.checked);
+  const name=document.createElement('span');name.textContent=person.name;label.append(input,name);list.appendChild(label);
+ }
 }
 function pickStudent(mode){
- const people=pickerCandidates(),p=pickerState();
- if(!people.length){pickedName.textContent='Add students to the roster or type names into seats first.';pickerProgress.textContent='0 students available.';return}
+ const people=pickerCandidates(),a=currentPickerActivity();syncPickerActivity(a,people);
+ if(!people.length){pickedName.textContent='Add students to the roster or type names into seats first.';showPicker(false);return}
  let student;
  if(mode==='all')student=people[Math.floor(Math.random()*people.length)];
  else{
-   const valid=new Set(people.map(s=>s.id));
-   p.remaining=p.remaining.filter(id=>valid.has(id));
-   if(!p.started||!p.remaining.length){p.remaining=people.map(s=>s.id);p.started=true}
-   const idx=Math.floor(Math.random()*p.remaining.length);
-   const id=p.remaining.splice(idx,1)[0];
-   student=people.find(s=>s.id===id);
+  if(!a.started||!a.remaining.length){a.remaining=people.map(s=>s.id);a.done=[];a.started=true}
+  const idx=Math.floor(Math.random()*a.remaining.length);
+  const id=a.remaining.splice(idx,1)[0];
+  if(!a.done.includes(id))a.done.push(id);
+  student=people.find(s=>s.id===id);
  }
- pickedName.textContent=student.name;
- save();
- const used=p.started?people.length-p.remaining.length:0;
- pickerProgress.textContent=p.started
-   ? (p.remaining.length?`Fair Pick: ${used} of ${people.length} selected; ${p.remaining.length} remaining.`:'Fair Pick: everyone selected. Next fair pick starts a new cycle.')
-   : `Fair Pick: ${people.length} students available. No cycle started.`;
+ save();showPicker(false);pickedName.textContent=student.name;
 }
-function resetPicker(){cls().picker={remaining:[],started:false};save();showPicker()}
+function resetPicker(){
+ const a=currentPickerActivity();
+ if(!confirm('Reset the participation cycle for "'+a.name+'"?'))return;
+ a.remaining=[];a.done=[];a.started=false;save();showPicker();
+}
 
 function setClassTitle(value){cls().customName=String(value||'').trim();save();renderClassTitle()}
 function renderClassTitle(){
